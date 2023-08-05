@@ -44,7 +44,7 @@
 
      
       <li class="nav-item">
-        <a class="nav-link" href="pages/tables/basic-table.html">
+        <a class="nav-link" href="{{url("admin/brands")}}">
           <i class="mdi mdi-skype-business menu-icon"></i>
           <span class="menu-title">Brands</span>
         </a>
