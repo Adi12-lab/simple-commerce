@@ -22,7 +22,7 @@
                             <input type="text" name="code" class="form-control">
                         </div>
                         <div class="mb-3">
-                            <label>Color Code</label> <br />
+                            <label>Status</label> <br />
                             <input type="checkbox" name="status" style="width: 50px; height:50px;">
                             Checked=Hidden, Unchecked=Visible
                         </div>
