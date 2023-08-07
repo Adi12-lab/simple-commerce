@@ -11,4 +11,8 @@ class ProductColor extends Model
     protected $table = "product_colors";
 
     protected $guarded = ["id"];
+
+    public function color() {
+        return $this->belongsTo(Color::class, "color_id", "id");
+    }
 }

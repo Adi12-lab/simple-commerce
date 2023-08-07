@@ -90,9 +90,11 @@ class ProductController extends Controller
         $product = Product::findOrFail($product_id);
         $categories = Category::all();
         $brands = Brand::all();
+        $product_color = $product->productColors->pluck("color_id")->toArray();
+        $colors = Color::whereNotIn("id", $product_color)->get();
 
 
-        return view("admin.product.edit", compact("categories", "brands", "product"));
+        return view("admin.product.edit", compact("categories", "brands", "product", "colors"));
     }
 
     public function update(ProductFormRequest $request, int $product_id) {
@@ -137,6 +139,16 @@ class ProductController extends Controller
                 }
             }
 
+            if($request->colors) {
+                foreach($request->colors as $key => $color) {
+                    $product->productColors()->create([
+                        "product_id" => $product->id,
+                        "color_id" =>  $color,
+                        "quantity" => $request->colorQuantity[$key] ?? 0
+                    ]);
+                }
+            }
+
             return redirect("admin/product")->with("message", "Product Updated Successfully");
     
 
@@ -173,5 +185,22 @@ class ProductController extends Controller
         $product->delete();
         return redirect()->back()->with("message", "Product deleted");
         
+    }
+
+    public function updateProdColorQty(Request $request, $prod_color_id) {
+
+        $productColorData = Product::findOrFail($request->product_id)
+                                    ->productColors()->where("id", $prod_color_id)->first();
+
+        $productColorData->update([
+            "quantity" => $request->qty
+        ]);
+        return response()->json(["message" => "Product COlor Qty updated"]);
+    }
+
+    public function deleteProdColor($prod_color_id) {
+        $prodColor = ProductColor::findOrfail($prod_color_id);
+        $prodColor->delete();
+        return response()->json(["message" => "Product Color Deleted"]);
     }
 }
