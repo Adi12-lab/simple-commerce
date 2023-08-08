@@ -37,7 +37,7 @@ class ProductController extends Controller
         $validatedData = $request->validated();
 
         $category = Category::findOrFail($validatedData["category_id"]);
-        $product = $category->product()->create([
+        $product = $category->products()->create([
             "category_id" => $validatedData["category_id"],
             "name" => $validatedData["name"],
             "slug" => Str::slug($validatedData["slug"]),
@@ -101,7 +101,7 @@ class ProductController extends Controller
 
         $validatedData = $request->validated();
         $product = Category::findOrFail($validatedData["category_id"])
-                            ->product()->where("id", $product_id)->first();
+                            ->products()->where("id", $product_id)->first();
 
         if($product) {
 

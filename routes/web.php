@@ -14,13 +14,17 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
 Auth::routes();
 
+Route::get("/", [App\Http\Controllers\Frontend\FrontendController::class, "index"]);
+
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get("collections", [App\Http\Controllers\Frontend\FrontendController::class, "categories"]);
+Route::get("collections/{category_slug}", [App\Http\Controllers\Frontend\FrontendController::class, "products"]);
 
 Route::prefix("admin")->middleware(["auth", "isAdmin"])->group(function() {
     Route::get("dashboard", [App\Http\Controllers\Admin\DashboardController::class, 'index']);
@@ -34,8 +38,6 @@ Route::prefix("admin")->middleware(["auth", "isAdmin"])->group(function() {
         Route::put("sliders/{slider}", "update");
         Route::get("sliders/{slider}/delete", "destroy");
     });
-
-    
 
     //Category Routes
     Route::controller(App\Http\Controllers\Admin\CategoryController::class)->group(function() {
