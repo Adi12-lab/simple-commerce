@@ -3,12 +3,14 @@
 namespace App\Http\Livewire\Frontend\Product;
 
 use App\Models\Wishlist;
+use App\Models\Cart;
+
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 
 class View extends Component
 {
-    public $category, $product, $prodColorSelectedQuantity;
+    public $category, $product, $prodColorSelectedQuantity, $quantityCount = 1, $productColorId;
     
 
     public function addToWishList($productId) {
@@ -53,7 +55,7 @@ class View extends Component
 
     public function colorSelected($productColorId) {
         // dd($productColorId);
-
+        $this->productColorId = $productColorId;
         $productColor = $this->product->productColors()->where("id", $productColorId)->first();
         $this->prodColorSelectedQuantity = $productColor->quantity;
 
@@ -62,6 +64,135 @@ class View extends Component
         }
     }
 
+    public function incrementQuantity() {
+        $this->quantityCount++;
+    }
+
+    public function decrementQuantity() {
+
+        if($this->quantityCount > 1) {
+            $this->quantityCount--;
+        }
+        
+    }
+
+    public function addToCart(int $productId) {
+        if(Auth::check()) {
+            if($this->product->where("id", $productId)->where("status", "0")->exists()) {
+                if($this->product->productColors()->count() > 1) {//check for product color quantity 
+                    // dd("am product color inside");
+                    if(  $this->prodColorSelectedQuantity != null) {
+                        // dd("color selected");
+                        if(Cart::where("user_id", auth()->user()->id)
+                                ->where("product_id", $productId)
+                                ->where("product_color_id", $this->productColorId)
+                                ->exists()) {
+
+                            $this->dispatchBrowserEvent("message", [
+                            "text" => "Product Already added",
+                            "type" => "warning",
+                            "status" => 200
+                        ]);
+    
+                        } else {
+                            $productColor = $this->product->productColors()->where("id", $this->productColorId)->first();
+                            if($productColor->quantity > 0) {
+    
+                                if($productColor->quantity > $this->quantityCount) {
+    
+                                    Cart::create([
+                                        "user_id" => auth()->user()->id,
+                                        "product_id" => $productId,
+                                        "product_color_id" => $this->productColorId,
+                                        "quantity" => $this->quantityCount
+                                    ]);
+                                    $this->dispatchBrowserEvent("message", [
+                                        "text" => "Product Added to Cart",
+                                        "type" => "success",
+                                        "status" => 200
+                                   ]);
+    
+                                } else {
+                                    $this->dispatchBrowserEvent("message", [
+                                        "text" => "Only ".$productColor->quantity." quantity available",
+                                        "type" => "warning",
+                                        "status" => 404
+                                   ]);
+                                }
+                                
+                            } else {
+                                $this->dispatchBrowserEvent("message", [
+                                    "text" => "Out of stock",
+                                    "type" => "warning",
+                                    "status" => 404
+                               ]);
+                            }
+                        }
+                    } else {    
+                        $this->dispatchBrowserEvent("message", [
+                            "text" => "Select your product color",
+                            "type" => "info",
+                            "status" => 404
+                       ]);
+                    }
+                } else {
+                    if(Cart::where("user_id", auth()->user()->id)->where("product_id", $productId)->exists()) {
+                        $this->dispatchBrowserEvent("message", [
+                            "text" => "Product already Added",
+                            "type" => "warning",
+                            "status" => 200
+                       ]);
+                    } else {
+                        if($this->product->quantity > 0) {
+                            if($this->product->quantity > $this->quantityCount) {//Tidak boleh melebihi stock
+                                //Insert to cart
+    
+                                    Cart::create([
+                                        "user_id" => auth()->user()->id,
+                                        "product_id" => $productId,
+                                        "quantity" => $this->quantityCount
+                                    ]);
+                                    $this->dispatchBrowserEvent("message", [
+                                        "text" => "Product Added to Cart",
+                                        "type" => "success",
+                                        "status" => 200
+                                   ]);
+        
+                            } else {
+                                $this->dispatchBrowserEvent("message", [
+                                    "text" => "Only ".$this->product->quantity." quantity available",
+                                    "type" => "warning",
+                                    "status" => 404
+                               ]);
+                            }
+                        } else {
+                            $this->dispatchBrowserEvent("message", [
+                                "text" => "Out of stock",
+                                "type" => "warning",
+                                "status" => 404
+                           ]);
+                        }
+
+                    }
+                }
+            } else {
+                $this->dispatchBrowserEvent("message", [
+                    "text" => "Product does not exist",
+                    "type" => "warning",
+                    "status" => 404
+               ]);
+            }
+        } else {
+            session()->flash("message", "Please login to continue");
+            $this->dispatchBrowserEvent("message", [
+                 "text" => "Please login to continue",
+                 "type" => "info",
+                 "status" => 401
+            ]);
+            return false;
+
+        }
+    }
 
     public function mount($category, $product) {
         $this->category = $category;
