@@ -28,7 +28,7 @@
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label>Full Name</label>
-                                        <input type="text" wire:model.defer="fullname" class="form-control"
+                                        <input type="text" wire:model.defer="fullname" id="fullname" class="form-control"
                                             placeholder="Enter Full Name" />
                                         @error('fullname')
                                             <small class="text-danger">{{ $message }}</small>
@@ -36,7 +36,7 @@
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label>Phone Number</label>
-                                        <input type="number" wire:model.defer="phone" class="form-control"
+                                        <input type="number" wire:model.defer="phone" id="phone" class="form-control"
                                             placeholder="Enter Phone Number" />
                                         @error('phone')
                                             <small class="text-danger">{{ $message }}</small>
@@ -44,7 +44,7 @@
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label>Email Address</label>
-                                        <input type="email" wire:model.defer="email" class="form-control"
+                                        <input type="email" wire:model.defer="email" id="email" class="form-control"
                                             placeholder="Enter Email Address" />
                                         @error('email')
                                             <small class="text-danger">{{ $message }}</small>
@@ -52,7 +52,7 @@
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label>Pin-code (Zip-code)</label>
-                                        <input type="number" wire:model.defer="pincode" class="form-control"
+                                        <input type="number" wire:model.defer="pincode" id="pincode" class="form-control"
                                             placeholder="Enter Pin-code" />
                                         @error('pincode')
                                             <small class="text-danger">{{ $message }}</small>
@@ -60,12 +60,12 @@
                                     </div>
                                     <div class="col-md-12 mb-3">
                                         <label>Full Address</label>
-                                        <textarea wire:model.defer="address" class="form-control" rows="2"></textarea>
+                                        <textarea wire:model.defer="address" id="address" class="form-control" rows="2"></textarea>
                                         @error('address')
                                             <small class="text-danger">{{ $message }}</small>
                                         @enderror
                                     </div>
-                                    <div class="col-md-12 mb-3">
+                                    <div class="col-md-12 mb-3" wire:ignore>
                                         <label>Select Payment Mode: </label>
                                         <div class="d-md-flex align-items-start">
                                             <div class="nav col-md-3 flex-column nav-pills me-3" id="v-pills-tab"
@@ -102,8 +102,13 @@
                                                     aria-labelledby="onlinePayment-tab" tabindex="0">
                                                     <h6>Online Payment Mode</h6>
                                                     <hr />
-                                                    <button type="button"  wire:loading.attr="disabled" class="btn btn-warning">Pay Now (Online
-                                                        Payment)</button>
+                                                    {{-- <button type="button" wire:loading.attr="disabled"
+                                                        class="btn btn-warning">Pay Now (Online
+                                                        Payment)</button> --}}
+                                                    <div>
+                                                        <div id="paypal-button-container"></div>
+
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -126,3 +131,70 @@
     </div>
 
 </div>
+
+@push('scripts')
+    <script
+        src="https://www.paypal.com/sdk/js?client-id=AadZfCOACMSA9GhVS8IyiuwilTnC4d9Yrpyo7IPlUDP1vU-8KyclIlqB1uV_97owidJk6eyK6y4wrPAr&currency=USD">
+    </script>
+    <script>
+        paypal.Buttons({
+
+            // onClick is called when the button is clicked
+            onClick() {
+
+                // Show a validation error if the checkbox is not checked
+                if (!document.getElementById('fullname').value
+                    || !document.getElementById('phone').value
+                    || !document.getElementById('email').value
+                    || !document.getElementById('pincode').value
+                    || !document.getElementById('address').value
+                ) {
+                    Livewire.emit("validationForAll");
+                    return false;
+                } else {
+                    @this.set("fullname", document.getElementById('fullname').value)
+                    @this.set("email", document.getElementById('email').value)
+                    @this.set("phone", document.getElementById('phone').value)
+                    @this.set("pincode", document.getElementById('pincode').value)
+                    @this.set("address", document.getElementById('address').value)
+                }
+            },
+            // Order is created on the server and the order id is returned
+            createOrder(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: "{{$this->totalProductAmount}}"
+                        }
+                    }]
+                })
+
+            },
+            // Finalize the transaction on the server after payer approval
+            onApprove(data) {
+                return fetch("/my-server/capture-paypal-order", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            orderID: data.orderID
+                        })
+                    })
+                    .then((response) => response.json())
+                    .then((orderData) => {
+                        // Successful capture! For dev/demo purposes:
+                        console.log('Capture result', orderData, JSON.stringify(orderData, null, 2));
+                        const transaction = orderData.purchase_units[0].payments.captures[0];
+                        alert(
+                            `Transaction ${transaction.status}: ${transaction.id}\n\nSee console for all available details`
+                        );
+                        // When ready to go live, remove the alert and show a success message within this page. For example:
+                        // const element = document.getElementById('paypal-button-container');
+                        // element.innerHTML = '<h3>Thank you for your payment!</h3>';
+                        // Or go to another URL:  window.location.href = 'thank_you.html';
+                    });
+            }
+        }).render('#paypal-button-container');
+    </script>
+@endpush

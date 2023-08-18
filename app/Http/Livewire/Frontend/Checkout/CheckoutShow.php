@@ -14,6 +14,12 @@ class CheckoutShow extends Component
 
     public $fullname, $email, $phone, $pincode, $address, $payment_mode = null, $payment_id = null;
 
+    protected $listeners = ["validationForAll"];
+
+    public function validationForAll() {
+        $this->validate();
+    }
+
     public function rules() {
         return [
             "fullname" => "required|string|max:121",
